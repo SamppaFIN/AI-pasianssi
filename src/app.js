@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.addEventListener('ai-error-occurred', () => {
+        console.log("AI Error Event received in app.js. Setting hadError = true");
         hadError = true;
         updatePlayUI();
     });
@@ -179,21 +180,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Settings logic
     const inpApiKey = document.getElementById('api-key');
+    const selProvider = document.getElementById('ai-provider');
     const selModel = document.getElementById('ai-model');
     const inpDelay = document.getElementById('ai-delay');
     
     btnSettings.addEventListener('click', () => {
         inpApiKey.value = localStorage.getItem('ai_apiKey') || '';
+        selProvider.value = localStorage.getItem('ai_provider') || 'openrouter';
         selModel.value = localStorage.getItem('ai_model') || 'google/gemini-2.0-flash-001';
-        inpDelay.value = localStorage.getItem('ai_delay') || '500';
+        inpDelay.value = localStorage.getItem('ai_delay') || '2000';
         settingsSheet.classList.remove('hidden');
     });
 
-    document.getElementById('btn-save-settings').addEventListener('click', () => {
-        localStorage.setItem('ai_apiKey', inpApiKey.value);
+    const btnSaveSettings = document.getElementById('btn-save-settings');
+    btnSaveSettings.addEventListener('click', () => {
+        localStorage.setItem('ai_apiKey', inpApiKey.value.trim());
+        localStorage.setItem('ai_provider', selProvider.value);
         localStorage.setItem('ai_model', selModel.value);
         localStorage.setItem('ai_delay', inpDelay.value);
-        closeAllSheets();
+        settingsSheet.classList.add('hidden');
+        alert("Asetukset tallennettu!");
         if (aiAgent.isPlaying) aiAgent.start(); // Refresh if playing
     });
 

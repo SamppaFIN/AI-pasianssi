@@ -25,8 +25,9 @@ export class AIAgent {
         }
         return {
             apiKey: apiKey || '',
+            provider: localStorage.getItem('ai_provider') || 'openrouter',
             model: localStorage.getItem('ai_model') || 'google/gemini-2.0-flash-001',
-            delay: parseInt(localStorage.getItem('ai_delay') || '500')
+            delay: parseInt(localStorage.getItem('ai_delay') || '2000') // Default to 2s
         };
     }
 
@@ -104,51 +105,76 @@ export class AIAgent {
             }
 
             const prompt = this.buildPrompt(legalMoves);
-            
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${settings.apiKey}`,
-                    'HTTP-Referer': window.location.href,
-                    'X-Title': 'AI Solitaire Infinite',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: settings.model,
-                    messages: [
-                        { role: 'system', content: `Olet mestaritason pasianssipelaaja. 
-                            PELI: ${this.engine.gameName}
-                            SÄÄNNÖT: ${this.engine.rules.description}
-                            
-                            TILANNEKUVA:
-                            - T0, T1, T2 jne. ovat pystyrivejä (Tableaus).
-                            - [X käännetty] tarkoittaa pystyrivin pohjalla olevia piilokortteja.
-                            - Tavoitteesi on vapauttaa piilokortteja siirtämällä niiden päällä olevia kortteja.
-                            
-                            TEHTÄVÄ: Analysoi tilanne ja valitse STRATEGISESTI paras siirto annetusta listasta. 
-                            
-                            SUORITA ANALYYSI TÄSSÄ JÄRJESTYKSESSÄ:
-                            1. Käy läpi jokainen pystyrivi (T0-T6): Voisiko sen päällimmäinen kortti siirtyä muualle?
-                            2. Tarkista apupino (Waste): Voiko sen kortin pelata pöydälle tai maapinoon?
-                            3. Tarkista kaikki SALLITUT SIIRROT -lista: Onko siellä jokin "itsestäänselvä" siirto, jota et ensin huomannut?
-                            
-                            STRATEGISET SÄÄNNÖT:
-                            1. Priorisoi siirtoja, jotka vapauttavat piilokortteja (pienentävät [X käännetty] lukua).
-                            2. Jos apupinosta (Waste) voi siirtää kortin pöydälle rakentamaan sarjaa, tee se!
-                            3. Rakenna sarjoja Kuninkaiden (K) päälle.
-                            4. Suosi koko pinojen siirtämistä, jotta vapautat alla olevan kortin.
-                            
-                            Vastaa vain valitun siirron tekstillä.` },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.1
-                })
-            });
+            let response;
 
-            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            if (settings.provider === 'google') {
+                // Direct Google Gemini API call
+                const geminiModel = settings.model.replace('google/', '');
+                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${settings.apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.1 }
+                    })
+                });
+            } else {
+                // OpenRouter call
+                response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${settings.apiKey}`,
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'AI Solitaire Infinite',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: settings.model,
+                        messages: [
+                            { role: 'system', content: `Olet mestaritason pasianssipelaaja. 
+                                PELI: ${this.engine.gameName}
+                                SÄÄNNÖT: ${this.engine.rules.description}
+                                
+                                TILANNEKUVA:
+                                - T0, T1, T2 jne. ovat pystyrivejä (Tableaus).
+                                - [X käännetty] tarkoittaa pystyrivin pohjalla olevia piilokortteja.
+                                - Tavoitteesi on vapauttaa piilokortteja siirtämällä niiden päällä olevia kortteja.
+                                
+                                TEHTÄVÄ: Analysoi tilanne ja valitse STRATEGISESTI paras siirto annetusta listasta. 
+                                
+                                SUORITA ANALYYSI TÄSSÄ JÄRJESTYKSESSÄ:
+                                1. Käy läpi jokainen pystyrivi (T0-T6): Voisiko sen päällimmäinen kortti siirtyä muualle?
+                                2. Tarkista apupino (Waste): Voiko sen kortin pelata pöydälle tai maapinoon?
+                                3. Tarkista kaikki SALLITUT SIIRROT -lista: Onko siellä jokin "itsestäänselvä" siirto, jota et ensin huomannut?
+                                
+                                STRATEGISET SÄÄNNÖT:
+                                1. Priorisoi siirtoja, jotka vapauttavat piilokortteja (pienentävät [X käännetty] lukua).
+                                2. Jos apupinosta (Waste) voi siirtää kortin pöydälle rakentamaan sarjaa, tee se!
+                                3. Rakenna sarjoja Kuninkaiden (K) päälle.
+                                4. Suosi koko pinojen siirtämistä, jotta vapautat alla olevan kortin.
+                                
+                                Vastaa vain valitun siirron tekstillä.` },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.1
+                    })
+                });
+            }
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `API Error: ${response.status}`);
+            }
 
             const data = await response.json();
-            const rawOutput = data.choices[0].message.content.trim();
+            let rawOutput = "";
+            
+            if (settings.provider === 'google') {
+                rawOutput = data.candidates[0].content.parts[0].text.trim();
+            } else {
+                rawOutput = data.choices[0].message.content.trim();
+            }
+
             console.log("AI Move Output:", rawOutput);
             
             const cleanCmd = legalMoves.find(m => rawOutput.includes(m)) || rawOutput;

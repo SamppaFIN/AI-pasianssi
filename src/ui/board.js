@@ -90,6 +90,21 @@ export class BoardRenderer {
             this.handleCardClick(pileType, pileIndex, cardIndex, card, isTopCard);
         });
 
+        // Touch Support for mobile
+        wrapper.addEventListener('touchstart', (e) => {
+            // We only handle simple tap-to-select for mobile as D&D is complex
+            // But we must allow scrolling, so we don't preventDefault here
+            // unless we're sure it's a tap. For now, simple tap is fine.
+            e.stopPropagation();
+            // Optional: add a small delay or check to distinguish from scroll
+        }, { passive: true });
+
+        wrapper.addEventListener('touchend', (e) => {
+            // If it was a quick tap, trigger click logic
+            e.stopPropagation();
+            this.handleCardClick(pileType, pileIndex, cardIndex, card, isTopCard);
+        }, { passive: false });
+
         return wrapper;
     }
 
@@ -152,6 +167,13 @@ export class BoardRenderer {
         });
 
         el.addEventListener('click', () => clickHandler(pileIndex));
+        
+        el.addEventListener('touchend', (e) => {
+            e.preventDefault(); // Prevent double trigger with click
+            e.stopPropagation();
+            clickHandler(pileIndex);
+        }, { passive: false });
+
         return el;
     }
 
@@ -273,19 +295,25 @@ export class BoardRenderer {
         // If we only got target info (from a click on empty space), use selection
         if (arguments.length === 2 && this.selectedCardInfo) {
             targetType = arguments[0];
-            targetIdx = arguments[1];
+            targetIdx = parseInt(arguments[1]);
             fromType = this.selectedCardInfo.pileType;
-            fromIdx = this.selectedCardInfo.pileIndex;
-            cardIdx = this.selectedCardInfo.cardIndex;
+            fromIdx = parseInt(this.selectedCardInfo.pileIndex);
+            cardIdx = parseInt(this.selectedCardInfo.cardIndex);
+        } else {
+            fromIdx = parseInt(fromIdx);
+            targetIdx = parseInt(targetIdx);
+            cardIdx = parseInt(cardIdx);
         }
 
-        if (!fromType) return;
+        if (fromType === undefined || fromIdx === undefined) return;
 
         // Calculate count for stack moves
         let count = 1;
         if (fromType === 'tableau') {
             const pile = this.engine.tableau[fromIdx];
-            count = pile.length - cardIdx;
+            if (pile) {
+                count = pile.length - cardIdx;
+            }
         }
 
         const cmd = `MOVE ${fromType} ${fromIdx} to ${targetType} ${targetIdx} ${count}`;
