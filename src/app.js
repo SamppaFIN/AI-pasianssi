@@ -51,9 +51,16 @@ document.addEventListener('DOMContentLoaded', () => {
         rulesOverlay.classList.remove('hidden');
     };
 
-    rulesOverlay.addEventListener('click', () => {
+    const closeRules = () => {
         rulesOverlay.classList.add('hidden');
-    });
+        // Resume AI if it was playing (optional, for now just hide)
+    };
+
+    rulesOverlay.addEventListener('click', closeRules);
+    rulesOverlay.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        closeRules();
+    }, { passive: false });
 
     // Initial Rules Display
     showRules(savedGame, engine.rules.description);
