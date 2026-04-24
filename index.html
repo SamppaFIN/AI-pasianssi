@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Solitaire - Infinite Edge</title>
-    <meta name="description" content="A premium AI-powered Solitaire game where you can watch AI play or play yourself.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Solitaire - Infinite 50</title>
+    <meta name="description" content="50 Solitaire games powered by OpenRouter AI.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -13,75 +13,135 @@
 <body>
     <div id="app-container">
         <!-- Header -->
-        <header class="glass-panel">
+        <header class="glass-panel mobile-header">
             <div class="logo">
-                <h1>AI Solitaire</h1>
-                <span class="badge">Infinite</span>
+                <h1 id="current-game-title">Klondike</h1>
+                <span class="badge" id="btn-open-games">Change Game ▼</span>
             </div>
             
             <div class="controls">
-                <div class="ai-status">
-                    <span class="status-indicator"></span>
-                    <span id="ai-status-text">AI Idle</span>
-                </div>
-                <button id="btn-ai-play" class="btn primary">Auto-Play</button>
-                <button id="btn-ai-pause" class="btn secondary" disabled>Pause</button>
-                <button id="btn-ai-step" class="btn secondary">Step AI</button>
+                <div id="score-display" class="score-badge">0</div>
+                <button id="btn-undo" class="btn icon-btn" title="Undo">↩️</button>
+                <button id="btn-rules" class="btn icon-btn" title="Rules">📖</button>
                 <button id="btn-settings" class="btn icon-btn" title="Settings">⚙️</button>
             </div>
         </header>
 
-        <!-- Game Board -->
+        <!-- Game Board (Dynamic) -->
         <main id="game-board">
-            <div class="board-top">
-                <div class="stock-waste-container">
-                    <div id="stock" class="pile stock-pile"></div>
-                    <div id="waste" class="pile waste-pile"></div>
-                </div>
-                <div class="foundations-container">
-                    <div id="foundation-0" class="pile foundation-pile" data-suit="hearts"></div>
-                    <div id="foundation-1" class="pile foundation-pile" data-suit="diamonds"></div>
-                    <div id="foundation-2" class="pile foundation-pile" data-suit="clubs"></div>
-                    <div id="foundation-3" class="pile foundation-pile" data-suit="spades"></div>
-                </div>
+            <div class="board-top" id="board-top">
+                <!-- Dynamically populated based on game (Stock, Waste, Foundations, Cells) -->
             </div>
             
-            <div class="board-bottom">
-                <div id="tableau-0" class="pile tableau-pile"></div>
-                <div id="tableau-1" class="pile tableau-pile"></div>
-                <div id="tableau-2" class="pile tableau-pile"></div>
-                <div id="tableau-3" class="pile tableau-pile"></div>
-                <div id="tableau-4" class="pile tableau-pile"></div>
-                <div id="tableau-5" class="pile tableau-pile"></div>
-                <div id="tableau-6" class="pile tableau-pile"></div>
+            <div class="board-bottom" id="board-bottom">
+                <!-- Dynamically populated tableaus -->
+            </div>
+
+            <!-- Rules Overlay (Appears on selection) -->
+            <div id="rules-overlay" class="modal hidden">
+                <div class="modal-content glass-panel" style="max-width: 500px; cursor: pointer;">
+                    <h2 id="rules-overlay-title" style="color: var(--accent-primary);">Klondike</h2>
+                    <p id="rules-overlay-text" style="font-size: 1rem; color: var(--text-main); line-height: 1.6; white-space: pre-wrap; margin-bottom: 1.5rem;"></p>
+                    <div style="text-align: center; font-size: 0.8rem; color: var(--text-muted);">Click anywhere to start playing</div>
+                </div>
             </div>
         </main>
+
+        <!-- Floating Auto-Play Button -->
+        <div class="floating-controls">
+            <button id="btn-ai-play" class="btn giant-play-btn">
+                <span class="icon">🤖</span> Auto-Play
+            </button>
+            <button id="btn-ai-pause" class="btn giant-pause-btn hidden">
+                <span class="icon">⏸️</span> Pause AI
+            </button>
+        </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal hidden">
+    <!-- Onboarding Step 1: API Key Modal -->
+    <div id="onboarding-step1" class="modal hidden">
         <div class="modal-content glass-panel">
-            <h2>Settings</h2>
+            <h2>Welcome to AI Solitaire!</h2>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+                To let the AI play, you need a free API key from OpenRouter. It acts as a bridge to hundreds of AI models.
+            </p>
+            <ol style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted); padding-left: 1rem;">
+                <li>Go to <a href="https://openrouter.ai/keys" target="_blank" style="color: var(--accent-primary);">OpenRouter.ai</a> and sign in.</li>
+                <li>Create a new API Key.</li>
+                <li>Paste it below.</li>
+            </ol>
             <div class="form-group">
-                <label for="api-key">OpenRouter API Key</label>
-                <input type="password" id="api-key" placeholder="sk-or-v1-...">
-                <small>Stored locally in your browser.</small>
-            </div>
-            <div class="form-group">
-                <label for="ai-model">AI Model</label>
-                <select id="ai-model">
-                    <option value="openai/gpt-4o-mini">GPT-4o Mini (Fast)</option>
-                    <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-                    <option value="google/gemini-pro-1.5">Gemini 1.5 Pro</option>
-                    <option value="openai/gpt-4o">GPT-4o</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="ai-delay">AI Move Delay (ms)</label>
-                <input type="number" id="ai-delay" value="1000" min="100" max="5000" step="100">
+                <input type="password" id="onboarding-api-key" placeholder="sk-or-v1-...">
             </div>
             <div class="modal-actions">
-                <button id="btn-save-settings" class="btn primary">Save & Close</button>
+                <button id="btn-cancel-onboarding" class="btn secondary">Cancel</button>
+                <button id="btn-verify-key" class="btn primary">Verify & Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Step 2: Select Model Modal -->
+    <div id="onboarding-step2" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <h2>Select Free AI Model</h2>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+                Your key works! Now choose one of the free AI models to play for you.
+            </p>
+            <div class="form-group">
+                <select id="onboarding-model">
+                    <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Suositus)</option>
+                    <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B (Ilmainen)</option>
+                    <option value="google/gemini-pro-1.5">Gemini 1.5 Pro</option>
+                    <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="btn-finish-onboarding" class="btn primary full-width">Start Playing!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Sheet: Game Selector -->
+    <div id="game-selector-sheet" class="bottom-sheet hidden">
+        <div class="sheet-backdrop"></div>
+        <div class="sheet-content glass-panel">
+            <div class="sheet-header">
+                <h2>Select Solitaire</h2>
+                <button class="btn icon-btn close-sheet">✕</button>
+            </div>
+            <div class="sheet-body" id="game-list-container">
+                <!-- Dynamically populated with 50 games -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Sheet: Settings -->
+    <div id="settings-sheet" class="bottom-sheet hidden">
+        <div class="sheet-backdrop"></div>
+        <div class="sheet-content glass-panel">
+            <div class="sheet-header">
+                <h2>AI Settings</h2>
+                <button class="btn icon-btn close-sheet">✕</button>
+            </div>
+            <div class="sheet-body">
+                <div class="form-group">
+                    <label for="api-key">OpenRouter API Key</label>
+                    <input type="password" id="api-key" placeholder="sk-or-v1-...">
+                </div>
+                <div class="form-group">
+                    <label for="ai-model">AI Model</label>
+                    <select id="ai-model">
+                        <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Suositus)</option>
+                        <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B (Ilmainen)</option>
+                        <option value="google/gemini-pro-1.5">Gemini 1.5 Pro</option>
+                        <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ai-delay">AI Delay (ms)</label>
+                    <input type="number" id="ai-delay" value="500" min="100" max="5000" step="100">
+                </div>
+                <button id="btn-save-settings" class="btn primary full-width">Save Settings</button>
             </div>
         </div>
     </div>
@@ -92,6 +152,8 @@
         <span>AI is thinking...</span>
     </div>
 
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script type="module" src="src/app.js"></script>
 </body>
 </html>

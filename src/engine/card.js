@@ -51,13 +51,18 @@ export class Card {
     }
 
     toString() {
-        if (!this.faceUp) return "[Face Down]";
-        return `${this.valueString} of ${this.suit}`;
+        if (!this.faceUp) return "[Käännetty]";
+        return `${this.valueString}${this.suitSymbol}`;
     }
 
     toShortString() {
         if (!this.faceUp) return "XX";
-        const suitInitial = this.suit.charAt(0).toUpperCase();
-        return `${this.valueString}${suitInitial}`;
+        return `${this.valueString}${this.suitSymbol}`;
+    }
+
+    static fromJSON(data) {
+        const c = new Card(data.suit, data.value);
+        c.faceUp = data.faceUp;
+        return c;
     }
 }
