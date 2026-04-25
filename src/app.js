@@ -120,6 +120,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = inpObKey.value.trim();
         if (!key) { alert("Syötä API-avain."); return; }
         
+        // Auto-detect Groq keys
+        if (key.startsWith('gsk_')) {
+            localStorage.setItem('ai_apiKey', key);
+            localStorage.setItem('ai_provider', 'groq');
+            obStep1.classList.add('hidden');
+            obStep2.classList.remove('hidden');
+            return;
+        }
+
         btnVerifyKey.innerText = "Varmistetaan...";
         btnVerifyKey.disabled = true;
         
@@ -135,16 +144,24 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error?.message || `API virhe: ${res.status}`);
+                // If it's not a valid OpenRouter key, but user insists, we could let them through
+                // but let's be safe and only allow if it looks like a key
+                if (key.length < 20) throw new Error("Avain näyttää liian lyhyeltä.");
+                console.warn("OpenRouter verification failed, but allowing anyway as it might be a different provider.");
             }
             
             localStorage.setItem('ai_apiKey', key);
+            localStorage.setItem('ai_provider', 'openrouter');
             obStep1.classList.add('hidden');
             obStep2.classList.remove('hidden');
         } catch (e) {
             console.error("Verification error:", e);
-            alert(`Varmistus epäonnistui: ${e.message}\n\nTarkista että avain on oikein ja sinulla on internet-yhteys.`);
+            const force = confirm(`Varmistus epäonnistui: ${e.message}\n\nHaluatko jatkaa silti? (Valitse tämä jos käytät muuta kuin OpenRouter-avainta)`);
+            if (force) {
+                localStorage.setItem('ai_apiKey', key);
+                obStep1.classList.add('hidden');
+                obStep2.classList.remove('hidden');
+            }
         } finally {
             btnVerifyKey.innerText = "Vahvista & Jatka";
             btnVerifyKey.disabled = false;
