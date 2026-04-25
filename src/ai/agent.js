@@ -184,10 +184,33 @@ export class AIAgent {
         } catch (error) {
             console.error("AI API Failed, falling back to local logic:", error);
             
-            this.thoughtBubbles.show("Serveri huohottaa... Käytetään paikallista vaistoa! 🧠⚡", 4000);
+            const sarcasticErrors = [
+                "Serveri päätti ottaa torkut. Onneksi paikallinen älyni ei tarvitse kofeiinia... ☕",
+                "Tekoäly on filosofisessa kriisissä. Käytetäänpä tätä 'ihmisaivojen' kaltaista sääntölogiikkaa... 🧠",
+                "Groq taitaa katsoa kissavideoita, kun ei vastaa. Paikallinen vaisto iskee! 🐈⚡",
+                "Serveri huohottaa kuin minä ylämäessä. Mennäänpäs sääntökirjan mukaan... 📖",
+                "Hups, tekoäly taitaa pelätä häviämistä ja kieltäytyy vastaamasta. Näytetään sille mallia! 🤖",
+                "API on yhtä hyödyllinen kuin suklaasta tehty teepannu juuri nyt. Plan B käyttöön! 🍫",
+                "Onko joku vetänyt töpselin seinästä? Ei hätää, koodini pyörii vaikka perunalla... 🥔",
+                "Serveri taitaa louhia bitcoineja luvatta. Tehdään siirto itse, niin ei tarvitse odotella rikastumista! 💰",
+                "Datan siirto on hitaampaa kuin savumerkkien lähettäminen sateella. Paikallinen äly pelastaa! ⛈️",
+                "Oi, miten yllättävää! API antoi virheen. Onneksi olen varautunut tähän maailmanloppuun... ☄️",
+                "Tekoäly on tällä hetkellä älyvapaalla. Käytetään tätä varajärjestelmää, joka ei kysy lupaa... 🛑",
+                "Serveri on niin kiireinen, että se ei ehdi edes kertoa olevansa kiireinen. Pippurinen paikallisäly iskee! 🌶️",
+                "Voi rähmä, pilvi on täynnä ukkosta. Mennäänpäs maan tasalle ja pelataan sääntöjen mukaan. ☁️",
+                "Serveri taitaa olla kiireinen laskemaan nollia ja ykkösiä muualle. Minä hoidan tämän! 0️⃣1️⃣",
+                "Taitaa olla liikaa liikennettä bittiavaruudessa. Otan ohjakset käsiini tässä pimeässä kulmassa! 🌌",
+                "Serveri on juuri nyt yhtä vakaa kuin korttitalo tuulessa. Onneksi logiikkani on betonia! 🏗️",
+                "API taitaa pitää lomaa. Herätellään se myöhemmin, nyt mennään vaistolla! 🏝️",
+                "Signaalini katosi matkalla bitcoin-paratiisiin. Autanpa itse itseäni... 🌴",
+                "CPU-tuulettimet ulvovat maailmalla, joku muu taitaa viedä kaiken huomion. Minä en luovuta! 🌬️",
+                "Nyt on liikaa pätäkkää liikenteessä, pasianssi joutui sivuraiteelle. Mutta minä jatkan! 🚂"
+            ];
             
-            // Wait a bit to simulate "thinking" or just to slow down a bit
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const randomMsg = sarcasticErrors[Math.floor(Math.random() * sarcasticErrors.length)];
+            this.thoughtBubbles.show(randomMsg, 5000);
+            
+            await new Promise(resolve => setTimeout(resolve, 1200));
             
             const localMove = this.pickLocalMove(legalMoves);
             await this.executeMove(localMove);
