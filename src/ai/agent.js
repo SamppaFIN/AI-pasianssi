@@ -99,7 +99,24 @@ export class AIAgent {
             const prompt = this.buildPrompt(legalMoves);
             let response;
 
-            if (settings.provider === 'custom') {
+            if (settings.provider === 'groq') {
+                // Groq API (Lightning fast)
+                response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${settings.apiKey}`,
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({
+                        model: settings.model || 'llama3-70b-8192',
+                        messages: [
+                            { role: 'system', content: `Olet mestaritason pasianssipelaaja. PELI: ${this.engine.gameName}. SÄÄNNÖT: ${this.engine.rules.description}. Vastaa vain valitun siirron tekstillä.` },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.1
+                    })
+                });
+            } else if (settings.provider === 'custom') {
                 // Hosted Ollama / Custom (OpenAI compatible endpoint)
                 const url = settings.customApiUrl || 'http://localhost:11434/v1/chat/completions';
                 response = await fetch(url, {
@@ -115,6 +132,7 @@ export class AIAgent {
                     })
                 });
             } else if (settings.provider === 'google') {
+                // Direct Google Gemini API call
                 const geminiModel = settings.model.replace('google/', '');
                 response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${settings.apiKey}`, {
                     method: 'POST',
@@ -125,6 +143,7 @@ export class AIAgent {
                     })
                 });
             } else {
+                // OpenRouter call
                 response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                     method: 'POST',
                     headers: {
