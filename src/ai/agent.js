@@ -38,23 +38,23 @@ export class AIAgent {
         console.log("AIAgent: start() called. isPlaying:", this.isPlaying);
         if (this.isPlaying) return;
         const settings = this.getSettings();
-        console.log("AIAgent settings:", { ...settings, apiKey: settings.apiKey ? '***' : 'MISSING' });
         
-        if (!settings.apiKey) {
+        // Check if we have a key or if it's a custom provider (which might not need one)
+        if (!settings.apiKey && settings.provider !== 'custom') {
             const usage = parseInt(localStorage.getItem('ai_usage_count') || '0');
-            if (usage >= 1000) {
-                const wantOwnKey = confirm('Julkinen kokeilujakso on päättynyt (1000 kutsua täynnä).\n\nHaluatko luoda oman ilmaisen OpenRouter API-avaimen ja jatkaa pelaamista?\n\nKlikkaa OK siirtyäksesi OpenRouterin sivuille.');
+            if (usage >= 1000 && settings.provider === 'openrouter') {
+                const wantOwnKey = confirm('Julkinen kokeilujakso on päättynyt.\n\nHaluatko luoda oman API-avaimen?\n\nKlikkaa OK siirtyäksesi OpenRouterin sivuille.');
                 if (wantOwnKey) {
                     window.open('https://openrouter.ai/keys', '_blank');
                 }
             } else {
-                alert('Määritä OpenRouter API-avain asetuksista ensin.');
+                alert(`Määritä ${settings.provider.toUpperCase()} API-avain asetuksista ensin.`);
             }
             return;
         }
 
-        // Track usage if using public key
-        if (settings.apiKey === getPublicApiKey()) {
+        // Track usage if using public keys
+        if (settings.apiKey === getPublicApiKey() || settings.apiKey === getPublicGroqKey()) {
             incrementUsage();
         }
 
