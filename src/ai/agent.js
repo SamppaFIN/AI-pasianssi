@@ -1,6 +1,4 @@
-// src/ai/agent.js
-
-import { incrementUsage, getPublicApiKey, getGameHistory } from './config.js';
+import { incrementUsage, getPublicApiKey, getPublicGroqKey, getGameHistory } from './config.js';
 
 export class AIAgent {
     constructor(engine, renderer, uiOverlayCallback, thoughtBubbles) {
@@ -20,12 +18,16 @@ export class AIAgent {
 
     getSettings() {
         let apiKey = localStorage.getItem('ai_apiKey');
+        const provider = localStorage.getItem('ai_provider') || 'openrouter';
+        
         if (!apiKey) {
-            apiKey = getPublicApiKey(); // Fallback to public key
+            if (provider === 'groq') apiKey = getPublicGroqKey();
+            else if (provider === 'openrouter') apiKey = getPublicApiKey();
         }
+        
         return {
             apiKey: apiKey || '',
-            provider: localStorage.getItem('ai_provider') || 'openrouter',
+            provider: provider,
             customApiUrl: localStorage.getItem('ai_customApiUrl') || '',
             model: localStorage.getItem('ai_model') || 'google/gemini-2.0-flash-001',
             delay: parseInt(localStorage.getItem('ai_delay') || '2000') // Default to 2s
