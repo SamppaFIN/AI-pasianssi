@@ -78,37 +78,27 @@ export class AIAgent {
         console.log("AIAgent: Attempting next move...");
         await this.makeMove(settings);
 
-        if (this.isPlaying && !this.engine.isGameWon()) {
-            this.timeoutId = setTimeout(() => {
-                this.playNextMove();
-            }, settings.delay);
-        } else if (this.engine.isGameWon()) {
-            this.isPlaying = false;
-            alert("AI Voitti!");
-        }
     }
 
     async makeMove(settings) {
         this.uiOverlayCallback(true);
         
-        // Show a random thought bubble
-        const thought = this.thinkingPhrases[Math.floor(Math.random() * this.thinkingPhrases.length)];
-        this.thoughtBubbles.show(thought, 3000);
+        const phrase = this.thinkingPhrases[Math.floor(Math.random() * this.thinkingPhrases.length)];
+        this.thoughtBubbles.show(phrase, 3000);
+
+        const legalMoves = this.engine.getLegalMoves();
+        if (legalMoves.length === 0) {
+            this.thoughtBubbles.show("Ei enää siirtoja... Peli ohi!", 4000);
+            this.pause();
+            this.uiOverlayCallback(false);
+            return;
+        }
 
         try {
-            const legalMoves = this.engine.getLegalMoves();
-            if (legalMoves.length === 0) {
-                console.log("AI has no legal moves.");
-                this.thoughtBubbles.show("Ei enää siirtoja... Peli ohi!", 4000);
-                this.pause();
-                return;
-            }
-
             const prompt = this.buildPrompt(legalMoves);
             let response;
 
             if (settings.provider === 'google') {
-                // Direct Google Gemini API call
                 const geminiModel = settings.model.replace('google/', '');
                 response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${settings.apiKey}`, {
                     method: 'POST',
@@ -119,7 +109,6 @@ export class AIAgent {
                     })
                 });
             } else {
-                // OpenRouter call
                 response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -131,29 +120,7 @@ export class AIAgent {
                     body: JSON.stringify({
                         model: settings.model,
                         messages: [
-                            { role: 'system', content: `Olet mestaritason pasianssipelaaja. 
-                                PELI: ${this.engine.gameName}
-                                SÄÄNNÖT: ${this.engine.rules.description}
-                                
-                                TILANNEKUVA:
-                                - T0, T1, T2 jne. ovat pystyrivejä (Tableaus).
-                                - [X käännetty] tarkoittaa pystyrivin pohjalla olevia piilokortteja.
-                                - Tavoitteesi on vapauttaa piilokortteja siirtämällä niiden päällä olevia kortteja.
-                                
-                                TEHTÄVÄ: Analysoi tilanne ja valitse STRATEGISESTI paras siirto annetusta listasta. 
-                                
-                                SUORITA ANALYYSI TÄSSÄ JÄRJESTYKSESSÄ:
-                                1. Käy läpi jokainen pystyrivi (T0-T6): Voisiko sen päällimmäinen kortti siirtyä muualle?
-                                2. Tarkista apupino (Waste): Voiko sen kortin pelata pöydälle tai maapinoon?
-                                3. Tarkista kaikki SALLITUT SIIRROT -lista: Onko siellä jokin "itsestäänselvä" siirto, jota et ensin huomannut?
-                                
-                                STRATEGISET SÄÄNNÖT:
-                                1. Priorisoi siirtoja, jotka vapauttavat piilokortteja (pienentävät [X käännetty] lukua).
-                                2. Jos apupinosta (Waste) voi siirtää kortin pöydälle rakentamaan sarjaa, tee se!
-                                3. Rakenna sarjoja Kuninkaiden (K) päälle.
-                                4. Suosi koko pinojen siirtämistä, jotta vapautat alla olevan kortin.
-                                
-                                Vastaa vain valitun siirron tekstillä.` },
+                            { role: 'system', content: `Olet mestaritason pasianssipelaaja. PELI: ${this.engine.gameName}. SÄÄNNÖT: ${this.engine.rules.description}. Vastaa vain valitun siirron tekstillä.` },
                             { role: 'user', content: prompt }
                         ],
                         temperature: 0.1
@@ -161,86 +128,86 @@ export class AIAgent {
                 });
             }
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error?.message || `API Error: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
 
             const data = await response.json();
-            let rawOutput = "";
-            
-            if (settings.provider === 'google') {
-                rawOutput = data.candidates[0].content.parts[0].text.trim();
-            } else {
-                rawOutput = data.choices[0].message.content.trim();
-            }
-
-            console.log("AI Move Output:", rawOutput);
+            let rawOutput = (settings.provider === 'google') 
+                ? data.candidates[0].content.parts[0].text.trim()
+                : data.choices[0].message.content.trim();
             
             const cleanCmd = legalMoves.find(m => rawOutput.includes(m)) || rawOutput;
-            
-            // Parse move for animation: "MOVE type index to type index count"
-            const moveParts = cleanCmd.split(' ');
-            if (moveParts[0] === 'MOVE' && moveParts.length >= 6) {
-                const fromType = moveParts[1];
-                const fromIdx = parseInt(moveParts[2]);
-                const toType = moveParts[4];
-                const toIdx = parseInt(moveParts[5]);
-                const count = parseInt(moveParts[6]) || 1;
-                
-                // Calculate card index for animation
-                let fromCardIdx = null;
-                if (fromType === 'tableau') {
-                    const fromPile = this.engine.tableau[fromIdx];
-                    if (fromPile) fromCardIdx = Math.max(0, fromPile.length - count);
-                }
-
-                this.thoughtBubbles.show(`Strateginen valinta: ${cleanCmd}`, 3500);
-                await this.renderer.animateMove(fromType, fromIdx, toType, toIdx, fromCardIdx);
-            } else {
-                this.thoughtBubbles.show(`Tehdään siirto: ${cleanCmd}`, 3000);
-            }
-
-            this.engine.applyMove(cleanCmd);
+            await this.executeMove(cleanCmd);
             
         } catch (error) {
-            console.error("AI Move Failed:", error);
+            console.error("AI API Failed, falling back to local logic:", error);
             
-            const funnyErrors = [
-                "Nyt ei löydy kaistaa pasianssille, koko maailma taitaa louhia kryptoja... ⛏️",
-                "Hups, joku taitaa tehdä rahaa muualla, eikä minulle riitä enää virtaa! 💸",
-                "Olen jonossa, mutta taitaa olla bitcoin-kaivos edessäni... ⛓️",
-                "Palvelin huohottaa! Taitaa joku renderöidä kissavideoita tai louhia lohkoketjuja... 🐈",
-                "Kaista loppui kesken! Taitavat kaikki muut koittaa rikastua pörssissä... 📉",
-                "Pasianssi on nyt toisarvoista, joku taitaa treidata kryptoilla täydellä teholla... 🚀",
-                "Bittini ovat jumissa bitcoin-ruuhkassa! Voisitko auttaa hetken? 🚗",
-                "Serveri taitaa olla kiireinen rahan tekemisessä, ei tässä ehdi korttia lyödä... 🏧",
-                "CPU-tuulettimet ulvovat maailmalla, joku muu taitaa viedä kaiken huomion... 🌬️",
-                "Aivoni ovat nyt varattu kryptolouhimon käyttöön, palataanpas hetken päästä! 🧠",
-                "Nyt on verkko täynnä rahanhimoa, ei tilaa yhdelle pienelle älykkäälle pasianssille... 🪙",
-                "Sori, kaistan vei joku, joka koittaa rikastua pikavauhtia! 🏃‍♂️",
-                "Verkkoliikenne on tukossa bittimiljonääreistä! Autatko siirron verran? 🛑",
-                "Pikseleitäni syödään muualla, varmaan joku louhii taas Ethereumia... 💎",
-                "Apuva! Olen jäänyt kryptokaivoksen puristuksiin! 🧱",
-                "Datani hukkui pörssikurssien sekaan. Pidetäänpäs pieni tauko... 📊",
-                "Joku muu taitaa nyt takoa rahaa, minä joudun tyytymään pelkkiin kortteihin... 🔨",
-                "Signaalini katosi matkalla bitcoin-paratiisiin. Autatko siirrolla? 🌴",
-                "Serverin laskentateho meni juuri jonkun äkkirikastumissuunnitelmaan... 🎰",
-                "Nyt on liikaa pätäkkää liikenteessä, pasianssi joutui sivuraiteelle! 🚂"
-            ];
+            this.thoughtBubbles.show("Serveri huohottaa... Käytetään paikallista vaistoa! 🧠⚡", 4000);
             
-            const randomMsg = funnyErrors[Math.floor(Math.random() * funnyErrors.length)];
-            const helpSuffix = "\n\nNyt taisi mennä palikat sekaisin, voisitko auttaa... 🧩";
+            // Wait a bit to simulate "thinking" or just to slow down a bit
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            this.thoughtBubbles.show(randomMsg + helpSuffix, 5000);
-            this.pause();
-            
-            // Dispatch event to update UI button text
-            window.dispatchEvent(new CustomEvent('ai-error-occurred'));
+            const localMove = this.pickLocalMove(legalMoves);
+            await this.executeMove(localMove);
         } finally {
             this.uiOverlayCallback(false);
-            this.renderer.render();
+            if (this.isPlaying) {
+                if (this.engine.isGameWon()) {
+                    this.isPlaying = false;
+                    alert("AI Voitti!");
+                } else {
+                    this.timeoutId = setTimeout(() => this.makeMove(settings), settings.delay);
+                }
+            }
         }
+    }
+
+    pickLocalMove(legalMoves) {
+        // Heuristic 1: Foundation moves are top priority
+        const foundationMove = legalMoves.find(m => m.includes('to foundation'));
+        if (foundationMove) return foundationMove;
+
+        // Heuristic 2: Tableau moves that reveal cards
+        const revealMove = legalMoves.find(m => {
+            if (!m.includes('from tableau')) return false;
+            const parts = m.split(' ');
+            const idx = parseInt(parts[2]);
+            const pile = this.engine.tableau[idx];
+            const count = parseInt(parts[parts.length-1]) || 1;
+            return pile && pile.length > count && !pile[pile.length - count - 1].faceUp;
+        });
+        if (revealMove) return revealMove;
+
+        // Heuristic 3: King to empty slot
+        const kingToEmpty = legalMoves.find(m => m.includes('to tableau') && m.includes('K'));
+        if (kingToEmpty) return kingToEmpty;
+
+        // Fallback: Just take the first one
+        return legalMoves[0];
+    }
+
+    async executeMove(cleanCmd) {
+        const moveParts = cleanCmd.split(' ');
+        if (moveParts[0] === 'MOVE' && moveParts.length >= 6) {
+            const fromType = moveParts[1];
+            const fromIdx = parseInt(moveParts[2]);
+            const toType = moveParts[4];
+            const toIdx = parseInt(moveParts[5]);
+            const count = parseInt(moveParts[6]) || 1;
+            
+            let fromCardIdx = null;
+            if (fromType === 'tableau') {
+                const fromPile = this.engine.tableau[fromIdx];
+                if (fromPile) fromCardIdx = Math.max(0, fromPile.length - count);
+            }
+
+            this.thoughtBubbles.show(`Tehdään siirto: ${cleanCmd}`, 3000);
+            await this.renderer.animateMove(fromType, fromIdx, toType, toIdx, fromCardIdx);
+        } else {
+            this.thoughtBubbles.show(`Tehdään siirto: ${cleanCmd}`, 3000);
+        }
+
+        this.engine.applyMove(cleanCmd);
+        this.renderer.render();
     }
 
     buildPrompt(legalMoves) {
