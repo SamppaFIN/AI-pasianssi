@@ -18,7 +18,7 @@ export class AIAgent {
 
     getSettings() {
         let apiKey = localStorage.getItem('ai_apiKey');
-        const provider = localStorage.getItem('ai_provider') || 'openrouter';
+        const provider = localStorage.getItem('ai_provider') || 'groq';
         
         if (!apiKey) {
             if (provider === 'groq') apiKey = getPublicGroqKey();
@@ -29,7 +29,7 @@ export class AIAgent {
             apiKey: apiKey || '',
             provider: provider,
             customApiUrl: localStorage.getItem('ai_customApiUrl') || '',
-            model: localStorage.getItem('ai_model') || 'google/gemini-2.0-flash-001',
+            model: localStorage.getItem('ai_model') || 'llama3-70b-8192',
             delay: parseInt(localStorage.getItem('ai_delay') || '2000') // Default to 2s
         };
     }

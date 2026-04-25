@@ -211,9 +211,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     btnSettings.addEventListener('click', () => {
         inpApiKey.value = localStorage.getItem('ai_apiKey') || '';
-        selProvider.value = localStorage.getItem('ai_provider') || 'openrouter';
+        selProvider.value = localStorage.getItem('ai_provider') || 'groq';
         inpCustomUrl.value = localStorage.getItem('ai_customApiUrl') || '';
-        selModel.value = localStorage.getItem('ai_model') || 'google/gemini-2.0-flash-001';
+        selModel.value = localStorage.getItem('ai_model') || 'llama3-70b-8192';
         inpDelay.value = localStorage.getItem('ai_delay') || '2000';
         settingsSheet.classList.remove('hidden');
     });
