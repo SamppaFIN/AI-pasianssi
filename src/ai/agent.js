@@ -98,7 +98,21 @@ export class AIAgent {
             const prompt = this.buildPrompt(legalMoves);
             let response;
 
-            if (settings.provider === 'google') {
+            if (settings.provider === 'ollama') {
+                // Local Ollama (OpenAI compatible endpoint)
+                response = await fetch('http://localhost:11434/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: settings.model || 'llama3',
+                        messages: [
+                            { role: 'system', content: `Olet mestaritason pasianssipelaaja. PELI: ${this.engine.gameName}. SÄÄNNÖT: ${this.engine.rules.description}. Vastaa vain valitun siirron tekstillä.` },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.1
+                    })
+                });
+            } else if (settings.provider === 'google') {
                 const geminiModel = settings.model.replace('google/', '');
                 response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${settings.apiKey}`, {
                     method: 'POST',
@@ -128,7 +142,13 @@ export class AIAgent {
                 });
             }
 
-            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            if (!response.ok) {
+                if (settings.provider === 'ollama') {
+                    throw new Error("Ollama ei vastaa. Varmista että se on päällä ja OLLAMA_ORIGINS=\"*\" on asetettu.");
+                }
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `API Error: ${response.status}`);
+            }
 
             const data = await response.json();
             let rawOutput = (settings.provider === 'google') 

@@ -199,6 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
         settingsSheet.classList.remove('hidden');
     });
 
+    selProvider.addEventListener('change', () => {
+        if (selProvider.value === 'ollama') {
+            alert("Ollama vaatii CORS-asetukset:\n\n1. Sulje Ollama\n2. Aseta ympäristömuuttuja: OLLAMA_ORIGINS=\"*\"\n3. Käynnistä Ollama uudelleen\n\nWindows (PowerShell):\n$env:OLLAMA_ORIGINS=\"*\"; ollama serve");
+        }
+    });
+
     const btnSaveSettings = document.getElementById('btn-save-settings');
     btnSaveSettings.addEventListener('click', () => {
         localStorage.setItem('ai_apiKey', inpApiKey.value.trim());
