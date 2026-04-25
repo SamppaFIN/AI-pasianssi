@@ -132,10 +132,15 @@
                 <div class="form-group">
                     <label for="ai-provider">AI Provider</label>
                     <select id="ai-provider">
-                        <option value="openrouter">OpenRouter (Monipuolinen)</option>
-                        <option value="google">Google Gemini (Suora, vakaampi)</option>
-                        <option value="ollama">Ollama (Paikallinen, ilmainen)</option>
+                        <option value="openrouter">OpenRouter (Cloud)</option>
+                        <option value="google">Google Gemini (Cloud Direct)</option>
+                        <option value="custom">Custom / Ollama (Hosted)</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="custom-api-url">Custom API URL (Optional)</label>
+                    <input type="text" id="custom-api-url" placeholder="http://localhost:11434/v1/chat/completions">
+                    <small style="font-size: 0.7rem; color: var(--text-muted);">Käytä jos hostaat omaa palvelinta.</small>
                 </div>
                 <div class="form-group">
                     <label for="ai-model">AI Model</label>

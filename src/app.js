@@ -188,20 +188,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Settings logic
     const inpApiKey = document.getElementById('api-key');
     const selProvider = document.getElementById('ai-provider');
+    const inpCustomUrl = document.getElementById('custom-api-url');
     const selModel = document.getElementById('ai-model');
     const inpDelay = document.getElementById('ai-delay');
     
     btnSettings.addEventListener('click', () => {
         inpApiKey.value = localStorage.getItem('ai_apiKey') || '';
         selProvider.value = localStorage.getItem('ai_provider') || 'openrouter';
+        inpCustomUrl.value = localStorage.getItem('ai_customApiUrl') || '';
         selModel.value = localStorage.getItem('ai_model') || 'google/gemini-2.0-flash-001';
         inpDelay.value = localStorage.getItem('ai_delay') || '2000';
         settingsSheet.classList.remove('hidden');
     });
 
     selProvider.addEventListener('change', () => {
-        if (selProvider.value === 'ollama') {
-            alert("Ollama vaatii CORS-asetukset:\n\n1. Sulje Ollama\n2. Aseta ympäristömuuttuja: OLLAMA_ORIGINS=\"*\"\n3. Käynnistä Ollama uudelleen\n\nWindows (PowerShell):\n$env:OLLAMA_ORIGINS=\"*\"; ollama serve");
+        if (selProvider.value === 'custom') {
+            alert("Oma palvelin (kuten Ollama) vaatii CORS-asetukset:\n\n1. Sulje palvelin\n2. Aseta ympäristömuuttuja: OLLAMA_ORIGINS=\"*\"\n3. Käynnistä palvelin uudelleen\n\nWindows (PowerShell):\n$env:OLLAMA_ORIGINS=\"*\"; ollama serve");
         }
     });
 
@@ -209,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSaveSettings.addEventListener('click', () => {
         localStorage.setItem('ai_apiKey', inpApiKey.value.trim());
         localStorage.setItem('ai_provider', selProvider.value);
+        localStorage.setItem('ai_customApiUrl', inpCustomUrl.value.trim());
         localStorage.setItem('ai_model', selModel.value);
         localStorage.setItem('ai_delay', inpDelay.value);
         settingsSheet.classList.add('hidden');

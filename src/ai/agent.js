@@ -26,6 +26,7 @@ export class AIAgent {
         return {
             apiKey: apiKey || '',
             provider: localStorage.getItem('ai_provider') || 'openrouter',
+            customApiUrl: localStorage.getItem('ai_customApiUrl') || '',
             model: localStorage.getItem('ai_model') || 'google/gemini-2.0-flash-001',
             delay: parseInt(localStorage.getItem('ai_delay') || '2000') // Default to 2s
         };
@@ -98,9 +99,10 @@ export class AIAgent {
             const prompt = this.buildPrompt(legalMoves);
             let response;
 
-            if (settings.provider === 'ollama') {
-                // Local Ollama (OpenAI compatible endpoint)
-                response = await fetch('http://localhost:11434/v1/chat/completions', {
+            if (settings.provider === 'custom') {
+                // Hosted Ollama / Custom (OpenAI compatible endpoint)
+                const url = settings.customApiUrl || 'http://localhost:11434/v1/chat/completions';
+                response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -143,8 +145,8 @@ export class AIAgent {
             }
 
             if (!response.ok) {
-                if (settings.provider === 'ollama') {
-                    throw new Error("Ollama ei vastaa. Varmista että se on päällä ja OLLAMA_ORIGINS=\"*\" on asetettu.");
+                if (settings.provider === 'custom') {
+                    throw new Error("Oma palvelin ei vastaa. Varmista että URL on oikein ja CORS-asetukset (OLLAMA_ORIGINS=\"*\") ovat kunnossa.");
                 }
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.error?.message || `API Error: ${response.status}`);
