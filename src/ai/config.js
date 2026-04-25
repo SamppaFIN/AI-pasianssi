@@ -7,7 +7,7 @@ const _v3 = "695334a4eef1d5a9b2efefc3"; // 3cfefe2b9a5d1fee4a433596 käännettyn
 const _v4 = "05f9dcb72beea138";
 
 // Groq Vault (Public restricted key)
-function getPublicGroqKey() {
+export function getPublicGroqKey() {
     const p1 = 'gsk_3T';
     const p2 = '82egCO';
     const p3 = 'uoEJps';
